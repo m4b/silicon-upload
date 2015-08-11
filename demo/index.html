@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>silicon-upload Demo</title>
+  <script src="../../webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="../silicon-upload.html">
+</head>
+
+<body>
+
+  <p>An example of
+    <code>&lt;silicon-upload&gt;</code>:</p>
+
+  <silicon-upload width="300" height="300" url="http://localhost:8080/upload"></silicon-upload>
+  <button>Upload</button>
+  <p>Upload progress:
+    <progress id="progress" min="0" max="100" value="0">0</progress>
+  </p>
+  <script>
+    var silicon = document.querySelector('silicon-upload');
+    var progress = document.getElementById('progress');
+
+    silicon.addEventListener('upload-progress', function(e) {
+      console.log('upload-progress', e.detail);
+      progress.value = progress.innerHTML = e.detail;
+    })
+
+    document.querySelector('body').addEventListener('upload-finished', function() {
+      console.log('upload finished');
+    });
+
+    document.querySelector('button').addEventListener('click', function() {
+      progress.value = 0;
+      silicon.upload();
+    });
+  </script>
+
+</body>
+
+</html>
