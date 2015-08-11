@@ -13,3 +13,7 @@ Example:
 ````
 
 You can specify the width and height of the dropbox, and manually generate an upload by calling `upload()`.
+
+# Documentation
+
+View the [documentation and the demo](http://m4b.github.io/silicon-upload) for more information.
