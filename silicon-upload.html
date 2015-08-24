@@ -13,52 +13,50 @@ Example:
 @demo
 -->
 <dom-module id="silicon-upload">
-
-  <style>
-    :host {
-      display: block;
-      box-sizing: border-box;
-      font-family: 'Inconsolata', monospace;
-      --dropbox-color: #006064;
-      --text-color: #FFEBEE;
-      --highlight-color: #F44336;
-      color: var(--text-color);
-    }
-
-    canvas {
-      position: relative;
-      top: 0px;
-      left: 0px;
-    }
-
-    span {
-      position: absolute;
-      top: 8px;
-      left: 0px;
-      right: 0px;
-      bottom: 0px;
-      text-align: center;
-      text-overflow: ellipsis;
-    }
-
-    #dropbox {
-      position: relative;
-      text-align: center;
-      display: inline-block;
-      background-color: var(--dropbox-color);
-    }
-
-    #dropbox.hover {
-      outline: 4px dashed var(--highlight-color);
-      outline-offset: -4px;
-    }
-
-    .error {
-      color: var(--highlight-color);
-    }
-  </style>
-
   <template>
+    <style>
+     :host {
+       display: block;
+       box-sizing: border-box;
+       font-family: 'Inconsolata', monospace;
+       --dropbox-color: #006064;
+       --text-color: #FFEBEE;
+       --highlight-color: #F44336;
+       color: var(--text-color);
+     }
+
+     canvas {
+       position: relative;
+       top: 0px;
+       left: 0px;
+     }
+
+     span {
+       position: absolute;
+       top: 8px;
+       left: 0px;
+       right: 0px;
+       bottom: 0px;
+       text-align: center;
+       text-overflow: ellipsis;
+     }
+
+     #dropbox {
+       position: relative;
+       text-align: center;
+       display: inline-block;
+       background-color: var(--dropbox-color);
+     }
+
+     #dropbox.hover {
+       outline: 4px dashed var(--highlight-color);
+       outline-offset: -4px;
+     }
+
+     .error {
+       color: var(--highlight-color);
+     }
+    </style>
     <input type="file" id="input" style="display:none;">
     <div id="container" class="layout horizontal">
       <div id="dropbox" on-tap="_selectFile" style$="[[_dims]]">
