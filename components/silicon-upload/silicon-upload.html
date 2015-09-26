@@ -1,0 +1,369 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="silicon-stringview.html">
+
+<!--
+A simple binary upload widget.  Accepts drag and drop, or click to select.
+
+Default sends the binary with `Content-Type: application/octet-stream`; set `asJson`
+to send as a base64 encoded string in the following JSON object:
+
+{{name: String, binary: String, date: Number}}.
+
+Example:
+
+    <silicon-upload auto as-json url="http://example.com/upload"></silicon-upload>
+
+@demo
+-->
+<dom-module id="silicon-upload">
+  <template>
+    <style>
+      :host {
+        display: block;
+        box-sizing: border-box;
+        font-family: 'Inconsolata', monospace;
+        --dropbox-color: #006064;
+        --text-color: #FFEBEE;
+        --highlight-color: #F44336;
+        color: var(--text-color);
+      }
+
+      canvas {
+        position: relative;
+        top: 0px;
+        left: 0px;
+      }
+
+      span {
+        position: absolute;
+        top: 8px;
+        left: 0px;
+        right: 0px;
+        bottom: 0px;
+        text-align: center;
+        text-overflow: ellipsis;
+      }
+
+      #dropbox {
+        position: relative;
+        text-align: center;
+        display: inline-block;
+        background-color: var(--dropbox-color);
+      }
+
+      #dropbox.hover {
+        outline: 4px dashed var(--highlight-color);
+        outline-offset: -4px;
+      }
+
+      .error {
+        color: var(--highlight-color);
+      }
+    </style>
+    <input type="file" id="input" style="display:none;">
+    <div id="container" class="layout horizontal">
+      <div id="dropbox" on-tap="_selectFile" style$="[[_dims]]">
+        <span id="info">[[_uploadInfo]]</span>
+        <canvas id="progressCanvas"></canvas>
+      </div>
+    </div>
+  </template>
+
+</dom-module>
+
+<script>
+  Polymer({
+
+    is: 'silicon-upload',
+
+    properties: {
+      /**
+       * The url to upload to.
+       */
+      url: {
+        type: String
+      },
+      /**
+       * Automatically upload after selecting or dragging, or when `file` changes.
+       *
+       * Otherwise must manually upload using `upload()`.
+       */
+      auto: {
+        type: Boolean,
+        value: false
+      },
+      /**
+       * The currently selected file.
+       *
+       * If `auto` is true, and `file` is changed and defined, it will begin the upload.
+       * @type {File}
+       */
+      file: {
+        type: Object,
+        notify: true
+      },
+      /**
+       * The width of the file upload dropbox.
+       */
+      width: {
+        type: Number,
+        value: 300
+      },
+      /**
+       * The height of the file upload dropbox.
+       */
+      height: {
+        type: Number,
+        value: 300
+      },
+      /**
+       * Transfer as json object, with the binary encoded via base64:
+       * {{name: String, binary: String, date: Number, size: Number}}
+       */
+      asJson: {
+        type: Boolean,
+        value: false
+      },
+      /**
+       * The last response after uploading to `url`.
+       */
+      lastResponse: {
+        type: Object,
+        notify: true
+      },
+      /**
+       * The computed style for the upload dropbox
+       */
+      _dims: {
+        type: String,
+        computed: '_computeDims(width, height)'
+      },
+      /**
+       * The upload progress.
+       */
+      progress: {
+        type: Number,
+        value: 0
+      },
+      /**
+       * Info or instructions displayed for uploading.
+       */
+      _uploadInfo: {
+        type: String,
+        value: 'Click or Drag a Binary to upload'
+      }
+    },
+
+    observers: ['_fileChanged(file, auto)'],
+
+    /**
+     * Computes the file upload and dropbox style dimensions from `width` and `height`.
+     */
+    _computeDims: function(width, height) {
+      this.$.progressCanvas.width = width;
+      this.$.progressCanvas.height = height;
+      return 'width: ' + width + 'px; height: ' + height + 'px;';
+    },
+
+    /**
+     * Gets the rasterized index.
+     * @return {{x: number, y: number}}
+     */
+    _index2raster: function(i, width) {
+      var x = i % width;
+      var y = (i - x) / width;
+      return {
+        x: x,
+        y: y
+      };
+    },
+
+    /**
+     * This fabulizes the canvas, in order to be more fabulous.  Use with caution.
+     */
+    _fabulize: function(ctx) {
+      var limit = Math.round(Math.sqrt(this.$.progressCanvas.width + this.$.progressCanvas.height));
+      console.log('limit: ', limit);
+      for (var i = 0; i < limit; i++) {
+        var r = Math.round(Math.random() * 255);
+        var g = Math.round(Math.random() * 255);
+        var b = Math.round(Math.random() * 255);
+        var x = Math.round(Math.random() * this.$.progressCanvas.width);
+        var y = Math.round(Math.random() * this.$.progressCanvas.height);
+        ctx.fillStyle = 'rgba(' + r + ', ' + g + ', ' + b + ',1)';
+        ctx.fillRect(x, y, 1, 1);
+      }
+    },
+
+    /**
+     * Would do cool renders for the canvas upload dropbox, using colors, but disabled for now.
+     */
+    _render: function() {
+      var ctx = this.$.progressCanvas.getContext('2d');
+      var reader = new FileReader();
+      reader.onloadend = (function() {
+        var bytes = new Uint8ClampedArray(reader.result);
+        var size = bytes.length;
+      }).bind(this);
+      reader.readAsArrayBuffer(this.file);
+      var color = Math.random();
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 10, 10);
+    },
+
+    /**
+     * Draws the progress into the canvas.  Actually does none of that for now.
+     */
+    _canvasProgress: function(progress) {
+
+    },
+
+    /**
+     * Starts the user file selection process.
+     */
+    _selectFile: function(e) {
+      this.$.input.click();
+      e.preventDefault();
+    },
+
+    /**
+     * Sets `file` to what the user selected.
+     */
+    _fileSelected: function(e) {
+      console.log('files:', e.target.files[0]);
+      this.file = e.target.files[0];
+      //this._render();
+    },
+
+    /**
+     * Called when `file` or `auto` is changed.
+     *
+     * If `auto` is enabled, automatically uploads `file` to `url`.
+     */
+    _fileChanged: function(file, auto) {
+      if (file) {
+        // in case we errored;
+        Polymer.dom(this.$.info).classList.remove('error');
+
+        this._uploadInfo = file.name + ' ' + file.size;
+        if (auto) this.upload();
+      }
+    },
+
+    /**
+     * Upload the binary `file` to the server at `url`.
+     *
+     * Uses `Content-Type: application/octet-stream`, because it's a binary.
+     */
+    upload: function() {
+      if (this.file) {
+        this.progress = 0;
+        var req = new XMLHttpRequest();
+        req.open('POST', this.url, true);
+        console.log('this.asJson', this.asJson);
+        if (this.asJson) {
+          req.setRequestHeader('Content-Type', 'application/json');
+        } else {
+          req.setRequestHeader('Content-Type', 'application/octet-stream');
+        }
+
+        var err = (function(status) {
+          console.log('ERROR', status);
+          this.progress = 0;
+          this.fire('upload-error');
+          this._uploadInfo = status;
+          Polymer.dom(this.$.info).classList.add('error');
+        }).bind(this);
+
+        req.onload = (function(e) {
+          console.log('e', e);
+          this.progress = 100;
+          if (e.target.status >= 200 && e.target.status < 300) {
+            this.lastResponse = e.target.response;
+            this.fire('upload-finished');
+            Polymer.dom(this.$.info).classList.remove('error');
+          } else {
+            this.progress = 0;
+            this.fire('upload-error', e.target.status);
+            Polymer.dom(this.$.info).classList.add('error');
+          }
+          this._uploadInfo = e.target.status + ' @ ' + this.url;
+        }).bind(this);
+
+        req.upload.onprogress = (function(event) {
+          //console.log('event.loaded:', event.loaded, event.total);
+          if (event.lengthComputable) {
+            var complete = (event.loaded / event.total * 100 | 0);
+            this.progress = complete;
+            this.fire('upload-progress', this.progress);
+          }
+        }).bind(this);
+
+        if (this.asJson) {
+          var data = {};
+          data.name = this.file.name;
+          data.lastModified = this.file.lastModified;
+          data.size = this.file.size;
+          console.log('data: ', data);
+          var reader = new FileReader();
+          reader.onloadend = function() {
+            console.log('loadend', reader.result.byteLength);
+            var binary = new Uint8Array(reader.result);
+            data.binary = StringView.bytesToBase64(binary);
+            console.log('sending data: ', JSON.stringify(data));
+            req.send(JSON.stringify(data));
+          };
+          reader.readAsArrayBuffer(this.file);
+        } else {
+          req.send(this.file);
+        }
+      }
+    },
+
+    attached: function() {
+      var dragover = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        var dropbox = Polymer.dom(this.root).querySelector('#dropbox');
+        Polymer.dom(dropbox).classList.add('hover');
+      };
+
+      var dragleave = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        var dropbox = Polymer.dom(this.root).querySelector('#dropbox');
+        Polymer.dom(dropbox).classList.remove('hover');
+      };
+
+      var drop = function(e) {
+        e.preventDefault();
+        var dropbox = Polymer.dom(this.root).querySelector('#dropbox');
+        Polymer.dom(dropbox).classList.remove('hover');
+        this.file = e.dataTransfer.files[0];
+      };
+
+      this.$.dropbox.addEventListener('dragover', dragover.bind(this), false);
+      this.$.dropbox.addEventListener('dragleave', dragleave.bind(this), false);
+      this.$.dropbox.addEventListener('drop', drop.bind(this), false);
+      this.$.input.addEventListener('change', this._fileSelected.bind(this), false);
+    }
+
+    // Element Behavior
+
+    /*
+     * The `upload-finished` event is fired when the upload is finished.
+     * @event upload-finished
+     */
+
+    /*
+     * The `upload-progress` event is fired when the upload contains progress, and includes the current progress.
+     * @event upload-progress {Number}
+     */
+
+    /*
+     * The `upload-error` event is fired when the upload encounters an error, and includes the status code error.
+     * @event upload-error {Number}
+     */
+
+  });
+</script>

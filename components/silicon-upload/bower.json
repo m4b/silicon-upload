@@ -1,0 +1,32 @@
+{
+  "name": "silicon-upload",
+  "version": "1.0.2",
+  "authors": [
+    "Anonymous <m4b.github.io@gmail.com>"
+  ],
+  "description": "A simple binary upload widget, to deliver all those bits to a server of your choice",
+  "keywords": [
+    "web-component",
+    "web-components",
+    "binary",
+    "upload",
+    "widget",
+    "polymer"
+  ],
+  "main": "silicon-upload.html",
+  "license": "LICENSE",
+  "homepage": "https://github.com/m4b/silicon-upload/",
+  "ignore": [
+    "/.*",
+    "/test/",
+    "/demo/",
+    "/*~"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#>=1.1.1"
+  },
+  "devDependencies": {
+    "iron-component-page": "PolymerElements/iron-component-page#^1.0.0",
+    "web-component-tester": "*"
+  }
+}
