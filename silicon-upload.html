@@ -1,61 +1,64 @@
 <link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="silicon-stringview.html">
 
 <!--
 A simple binary upload widget.  Accepts drag and drop, or click to select.
 
-Sends the binary with `Content-Type: application/octet-stream` for now.  Will
-update later to allow a json format with base64, including the filename, size, etc.
+Default sends the binary with `Content-Type: application/octet-stream`; set `asJson`
+to send as a base64 encoded string in the following JSON object:
+
+{{name: String, binary: String, date: Number}}.
 
 Example:
 
-    <silicon-upload auto url="http://example.com/upload"></silicon-upload>
+    <silicon-upload auto as-json url="http://example.com/upload"></silicon-upload>
 
 @demo
 -->
 <dom-module id="silicon-upload">
   <template>
     <style>
-     :host {
-       display: block;
-       box-sizing: border-box;
-       font-family: 'Inconsolata', monospace;
-       --dropbox-color: #006064;
-       --text-color: #FFEBEE;
-       --highlight-color: #F44336;
-       color: var(--text-color);
-     }
+      :host {
+        display: block;
+        box-sizing: border-box;
+        font-family: 'Inconsolata', monospace;
+        --dropbox-color: #006064;
+        --text-color: #FFEBEE;
+        --highlight-color: #F44336;
+        color: var(--text-color);
+      }
 
-     canvas {
-       position: relative;
-       top: 0px;
-       left: 0px;
-     }
+      canvas {
+        position: relative;
+        top: 0px;
+        left: 0px;
+      }
 
-     span {
-       position: absolute;
-       top: 8px;
-       left: 0px;
-       right: 0px;
-       bottom: 0px;
-       text-align: center;
-       text-overflow: ellipsis;
-     }
+      span {
+        position: absolute;
+        top: 8px;
+        left: 0px;
+        right: 0px;
+        bottom: 0px;
+        text-align: center;
+        text-overflow: ellipsis;
+      }
 
-     #dropbox {
-       position: relative;
-       text-align: center;
-       display: inline-block;
-       background-color: var(--dropbox-color);
-     }
+      #dropbox {
+        position: relative;
+        text-align: center;
+        display: inline-block;
+        background-color: var(--dropbox-color);
+      }
 
-     #dropbox.hover {
-       outline: 4px dashed var(--highlight-color);
-       outline-offset: -4px;
-     }
+      #dropbox.hover {
+        outline: 4px dashed var(--highlight-color);
+        outline-offset: -4px;
+      }
 
-     .error {
-       color: var(--highlight-color);
-     }
+      .error {
+        color: var(--highlight-color);
+      }
     </style>
     <input type="file" id="input" style="display:none;">
     <div id="container" class="layout horizontal">
@@ -112,6 +115,21 @@ Example:
       height: {
         type: Number,
         value: 300
+      },
+      /**
+       * Transfer as json object, with the binary encoded via base64:
+       * {{name: String, binary: String, date: Number, size: Number}}
+       */
+      asJson: {
+        type: Boolean,
+        value: false
+      },
+      /**
+       * The last response after uploading to `url`.
+       */
+      lastResponse: {
+        type: Object,
+        notify: true
       },
       /**
        * The computed style for the upload dropbox
@@ -242,26 +260,34 @@ Example:
         this.progress = 0;
         var req = new XMLHttpRequest();
         req.open('POST', this.url, true);
-        req.setRequestHeader('Content-Type', 'application/octet-stream');
+        console.log('this.asJson', this.asJson);
+        if (this.asJson) {
+          req.setRequestHeader('Content-Type', 'application/json');
+        } else {
+          req.setRequestHeader('Content-Type', 'application/octet-stream');
+        }
 
-        var err = function(status) {
+        var err = (function(status) {
           console.log('ERROR', status);
           this.progress = 0;
           this.fire('upload-error');
           this._uploadInfo = status;
           Polymer.dom(this.$.info).classList.add('error');
-        };
+        }).bind(this);
 
         req.onload = (function(e) {
+          console.log('e', e);
           this.progress = 100;
           if (e.target.status >= 200 && e.target.status < 300) {
+            this.lastResponse = e.target.response;
             this.fire('upload-finished');
+            Polymer.dom(this.$.info).classList.remove('error');
           } else {
             this.progress = 0;
             this.fire('upload-error', e.target.status);
-            this._uploadInfo = e.target.status + ' @ ' + this.url;
             Polymer.dom(this.$.info).classList.add('error');
           }
+          this._uploadInfo = e.target.status + ' @ ' + this.url;
         }).bind(this);
 
         req.upload.onprogress = (function(event) {
@@ -273,7 +299,24 @@ Example:
           }
         }).bind(this);
 
-        req.send(this.file);
+        if (this.asJson) {
+          var data = {};
+          data.name = this.file.name;
+          data.lastModified = this.file.lastModified;
+          data.size = this.file.size;
+          console.log('data: ', data);
+          var reader = new FileReader();
+          reader.onloadend = function() {
+            console.log('loadend', reader.result.byteLength);
+            var binary = new Uint8Array(reader.result);
+            data.binary = StringView.bytesToBase64(binary);
+            console.log('sending data: ', JSON.stringify(data));
+            req.send(JSON.stringify(data));
+          };
+          reader.readAsArrayBuffer(this.file);
+        } else {
+          req.send(this.file);
+        }
       }
     },
 

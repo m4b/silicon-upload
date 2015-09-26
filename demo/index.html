@@ -14,27 +14,39 @@
   <p>An example of
     <code>&lt;silicon-upload&gt;</code>:</p>
 
-  <silicon-upload width="300" height="300" url="http://localhost:8080/upload"></silicon-upload>
-  <button>Upload</button>
-  <p>Upload progress:
-    <progress id="progress" min="0" max="100" value="0">0</progress>
-  </p>
+  <template id="t" is="dom-bind">
+    <silicon-upload as-json last-response="{{lastResponse}}" width="300" height="300" url="http://localhost:8080/upload"></silicon-upload>
+    <div class="flex">
+      <button>Upload</button>
+      <input value="{{url::input}}"></input>
+    </div>
+    <p>Upload progress:
+      <progress id="progress" min="0" max="100" value="0">0</progress>
+    </p>
+    <span>[[lastResponse]]</span>
+  </template>
   <script>
-    var silicon = document.querySelector('silicon-upload');
-    var progress = document.getElementById('progress');
+    document.querySelector("#t").addEventListener('dom-change', function() {
+      console.log('demo-ready');
+      var silicon = document.querySelector('silicon-upload');
+      var progress = document.getElementById('progress');
 
-    silicon.addEventListener('upload-progress', function(e) {
-      console.log('upload-progress', e.detail);
-      progress.value = progress.innerHTML = e.detail;
-    })
+      silicon.addEventListener('upload-progress', function(e) {
+        console.log('upload-progress', e.detail);
+        progress.value = progress.innerHTML = e.detail;
+      })
 
-    document.querySelector('body').addEventListener('upload-finished', function() {
-      console.log('upload finished');
-    });
+      document.querySelector('body').addEventListener('upload-finished', function() {
+        console.log('upload finished');
+        //this.lastResponse = silicon.lastResponse;
+      });
 
-    document.querySelector('button').addEventListener('click', function() {
-      progress.value = 0;
-      silicon.upload();
+      document.querySelector('button').addEventListener('click', (function() {
+        progress.value = 0;
+        console.log('url: ', this.url);
+        silicon.url = this.url;
+        silicon.upload();
+      }).bind(this));
     });
   </script>
 
